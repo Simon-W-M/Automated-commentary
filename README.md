@@ -8,7 +8,7 @@ None, there report is entirely self contained.
 Read and run the code
 
 ## Contributions
-PLease fee free to contact me with any feedback or additional ideas
+Please fee free to contact me with any feedback or additional ideas
 
 ## Version
 One point zero - 26 Oct 23
