@@ -1,0 +1,257 @@
+---
+title: "Commentary"
+format: html
+editor: visual
+---
+
+::: column-screen-inset
+
+## Automated Commentary
+
+```{r}
+library(glue)
+library(tidyverse)
+library(NHSRplotthedots)
+library(NHSRdatasets)
+
+# writting automated commentary for reports
+
+# you have used round brackets,  you may have used the odd curly 
+# have have you used square brackets?  
+
+# square brackets are NOT square!
+
+##########
+# basics #
+##########
+
+# a simple vector
+sim_vec <- c(1,5,8,6,3,7)
+
+#  using square brackets to slice
+#  returns the 4th item in the vector
+sim_vec[4]
+
+# everything appart from the first 
+sim_vec[-1]
+
+# everything appart from the fourth
+sim_vec[-4]
+
+# retuning a range of the first 3 values
+sim_vec[1:3]
+
+# but where we get interesting is a conditional
+sim_vec[sim_vec > 3]
+
+# works with functions too
+sim_vec[sim_vec == max(sim_vec)]
+
+# find the second smallest
+sort(sim_vec)[2]
+
+# or second biggest 
+sort(sim_vec, decreasing = TRUE)[2]
+
+# remember vectors can also contain strings
+
+string_vec <- c('Bob', 'Fred', 'Brian', 'Peter')
+
+# and we can slice those vectors just the same
+string_vec[3]
+
+# all super interesting stuff but how does this help us with our table you ask?
+# well clever old base R allows us to treat a column as a vector
+# with the use of the '$' sign
+
+####################################
+# build a table example to work on #
+####################################
+
+# my basic table
+table <- data.frame(
+  stringsAsFactors = FALSE,
+  area = c("East Of England","London",
+           "Midlands","North East And Yorkshire","North West",
+           "South East","South West",
+           "Bath And North East Somerset, Swindon And Wiltshire",
+           "Bristol, North Somerset And South Gloucestershire","Cornwall And The Isles Of Scilly",
+           "Devon","Dorset","Gloucestershire","Somerset"),
+  num_refs = c(6325L,3500L,7295L,9345L,
+               4495L,5730L,3985L,2300L,580L,5L,50L,350L,240L,460L),
+  trend.x = c("arrow-up","right-left",
+              "right-left","arrow-up","caret-up","caret-up","arrow-up",
+              "arrow-up","right-left","arrow-down","right-left",
+              "arrow-up","right-left","arrow-up"),
+  stand_refs = c(0,0,0,0,0,0,0,244.3,
+                 100.5,20.9,12.4,43.6,43.9,106.9),
+  perc_ach = c(85.1,86.6,87.4,81.4,88.7,
+               84.7,75.2,69.3,78.9,100,90,81.4,77.1,92.4),
+  trend.y = c("arrow-up","arrow-up",
+              "right-left","right-left","caret-up","right-left",
+              "right-left","right-left","right-left","right-left",
+              "right-left","right-left","right-left","arrow-up"),
+  care_contacts = c(13505L,19260L,21485L,19255L,
+                    16480L,24345L,8110L,3885L,880L,5L,130L,360L,920L,
+                    1935L),
+  sd_care_contacts = c(0,0,0,0,0,0,0,386.2,124,
+                       0.2,5.2,43.1,158.3,167.7),
+  con_ref_rate = c(2.1,5.5,2.9,2.1,3.7,4.2,2,
+                   1.7,1.5,1,2.6,1,3.8,4.2)
+)
+
+# back to our table 
+# can can use base R '$' to treat a column as a vector
+table$num_refs
+
+#so if we wanted to find the highest number of referrals 
+table$num_refs[table$num_refs == max(table$num_refs)]
+
+# where this gets really cool is how to return the name of the region
+# with the hightest number of referrals 
+table$area[table$num_refs == max(table$num_refs)]
+
+# Now we can put those two elements together
+hi_ref_num <- prettyNum(table$num_refs[table$num_refs == max(table$num_refs)], big.mark = ',')
+hi_ref_area <- table$area[table$num_refs == max(table$num_refs)]
+
+glue('The area with the highest number of referrals was {hi_ref_area} that had {hi_ref_num} referrals in the period.')
+
+# lets add some more to that 
+# what was the mean of the regions referrals 
+mean_av <- mean(table$num_refs[1:7])
+
+# and even better make it pretty
+mean_av_pretty <- prettyNum(round(mean_av, 1), big.mark = ',')
+
+# we can also work out a standard deviation 
+std_dev <- sd(table$num_refs[1:7])
+
+# then calc a standard deviation abover mean 
+one_sd_above_mean <- mean_av + std_dev
+
+# then have a piece of text that will say 'higher' or 'staticially significantly  higher'
+is_hi <- if_else(hi_ref_num > one_sd_above_mean, 
+                 'staticially significantly higher', 
+                 'higher')
+
+# lets glue all that stuff togther
+glue('{hi_ref_area} has the highest number of referrals with {hi_ref_num}, 
+     in the period.  The mean accorss the regions is {mean_av_pretty} referrals 
+     and we can observe that {hi_ref_area} is {is_hi} than this.')
+
+# say I am super interested in the south west and want to comment on where we are with regard to referrals compared to everyone else
+# create list of text for highest to lowest
+order_list <- c('highest', 
+                'second highest', 
+                'third highest', 
+                'middle', 
+                'third lowest', 
+                'second lowest', 
+                'lowest')
+
+region <- 'South West'
+
+# create region ranks   
+regions_rank <- table |>
+  head(7) |>
+  mutate(rank_ref = rank(desc(num_refs)),
+         rank_ach = rank(desc(perc_ach)))
+
+# to build this up start with which rank is 'South West'
+regions_rank$rank_ref[regions_rank$area == region]
+
+# returns a 6, which we then want to pull the 6th item from our order list
+order_list[regions_rank$rank_ref[regions_rank$area == region]]
+
+reg_order <- order_list[regions_rank$rank_ref[regions_rank$area == region]]
+
+glue('The {region} has the {reg_order} number of referrals of the regions')
+
+# change the varible in the table (very naughty - don't inject data into tables!)
+table$num_refs[table$area =='South West'] <- 9000
+
+# then re run the above
+# create region ranks   
+regions_rank <- table |>
+  head(7) |>
+  mutate(rank_ref = rank(desc(num_refs)),
+         rank_ach = rank(desc(perc_ach)))
+
+# to build this up start with which rank is 'South West'
+regions_rank$rank_ref[regions_rank$area == region]
+
+# returns a 6, which we then want to pull the 6th item from our order list
+order_list[regions_rank$rank_ref[regions_rank$area == region]]
+
+reg_order <- order_list[regions_rank$rank_ref[regions_rank$area == region]]
+
+glue('The {region} has the {reg_order} number of referrals of the regions')
+
+# in the table its got piece for up / down side to side
+# this is a use of the NHSR-plot the dots function to work out the trend
+# can show you the very basics of how this works
+
+data <- ae_attendances
+
+data <- data |>
+  filter(org_code == 'RF4',
+         type == '1')
+
+
+spc_tab <- data |>
+  ptd_spc(value_field = attendances,
+          date_field = period)
+
+spc_tab <- spc_tab |>
+  filter(x == max(x))
+
+# I then joined this back to my data - renamed it to a font aweson icon so
+# that I could render it in my GT table
+
+# I could also use this within the commentary with a case statement 
+
+trend_tx <- case_when (spc_tab$point_type == 'special_cause_concern' ~ 'deterioring trend',
+                       spc_tab$point_type == 'common_cause' ~ 'no trend',
+                       spc_tab$point_type == 'special_cause_improvement' ~ 'improving trend',
+                       TRUE ~ 'ERROR!  PLease check')
+
+glue ('We can see that there is a {trend_tx}.')
+
+
+####################
+# fancy formatting #
+####################
+
+# you can add all sorts of formatting to your text.  
+# this doesn't seem to render for some strange reason (for me) directly from the glue
+# command but if you assign it to an object and then call the object inline, it 
+# all renders just fine.  Not sure what the reason for this is.
+
+
+tx <- glue('*{hi_ref_area}* has the highest number of referrals with **{hi_ref_num}**, 
+     in the period.  The mean across the regions is <span style="color:blue">{mean_av_pretty}</span> referrals 
+     and we can observe that ***{hi_ref_area}*** is <u>{is_hi}</u> than this.')
+
+# you could also add for formatting at the previous stage to give it a level of conditional formatting
+is_hi_alt <- if_else(hi_ref_num > one_sd_above_mean, 
+                 '<span style="color:green">staticially significantly higher</span>', 
+                 '<span style="color:blue">higher</span>')
+
+
+```
+
+
+`r tx`
+
+
+> **Contact**\
+> [**Simon Wellesley-Miller**](mailto:Simon.Wellesley-Miller@nhs.net)\
+> *Senior Analytical Manager*\
+> *NHS England*\
+> Version 1.0 26 October 2023
+
+
+
+
+:::
