@@ -13,6 +13,7 @@ library(glue)
 library(tidyverse)
 library(NHSRplotthedots)
 library(NHSRdatasets)
+library(stringi)
 
 # writting automated commentary for reports
 
@@ -187,6 +188,26 @@ order_list[regions_rank$rank_ref[regions_rank$area == region]]
 reg_order <- order_list[regions_rank$rank_ref[regions_rank$area == region]]
 
 glue('The {region} has the {reg_order} number of referrals of the regions')
+
+# pull through a list of multiple things
+
+# lets pull through areas who have care contacts over over 19,000
+
+reg_care <- regions_rank$area[regions_rank$care_contacts > 19256]
+
+# that gives us a vector that we can flatten into a string.
+
+reg_care <- toString(reg_care)
+
+# this defaults to giving a comma seperator which is nice but not great if we want
+# to put it into an english sentence
+
+# lets remove the last comma and replace with 'and', uses the stringi library 
+reg_care <-stri_replace_last(reg_care, fixed = ',', ' and')
+
+# this gives us
+glue('The areas with over 19,256 care contacts are {reg_care}.')
+
 
 # in the table its got piece for up / down side to side
 # this is a use of the NHSR-plot the dots function to work out the trend
